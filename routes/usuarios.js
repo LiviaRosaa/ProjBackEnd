@@ -1,3 +1,4 @@
+const protegerRota = require('../middleware/auth');
 const express = require('express');
 const router = express.Router();
 const bcrypt = require ('bcrypt');
@@ -68,4 +69,11 @@ router.post('/login', async(req,res) => {
             }
         });
 
+//ROTA DE TESTE DE AUTENTICAÇÃO
+router.get('/perfil', protegerRota, (req, res) => {
+        res.json({ 
+        mensagem: 'Acesso liberado! O token é válido.',
+        idDoUsuarioLogado: req.auth.id 
+    });
+});
 module.exports = router;
