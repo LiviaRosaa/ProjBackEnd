@@ -13,18 +13,22 @@ class Usuario {
             );
             const idUsuario = resultadoUsuario.insertId;
 
-            const categoriasPadrao = ['Alimentação', 'Moradia', 'Transporte', 'Saúde', 'Salário'];
-            for (const categoria of categoriasPadrao) {
+           const categoriasPadrao = [
+            ['Salário', 'entrada'], ['Outras entradas', 'entrada'],
+            ['Alimentação', 'saida'], ['Moradia', 'saida'], ['Saúde', 'saida'],
+            ['Mobilidade', 'saida'], ['Lazer', 'saida'], ['Educação', 'saida'], ['Outras saídas', 'saida'],
+            ];
+                for (const [nome, tipo] of categoriasPadrao) {
                 await conexao.query(
-                    'INSERT INTO categorias (nome, id_usuario) VALUES (?, ?)',
-                    [categoria, idUsuario]
+                'INSERT INTO categorias (nome, tipo, id_usuario) VALUES (?, ?, ?)',
+                [nome, tipo, idUsuario]
                 );
             }
 
             await conexao.query(
-                'INSERT INTO fontes_destinos (nome, id_usuario) VALUES (?, ?)',
-                ['Conta corrente', idUsuario]
-            );
+            "INSERT INTO fontes_destinos (nome, tipo, id_usuario) VALUES ('Conta corrente', 'conta', ?)",
+            [idUsuario]
+             );
 
             await conexao.commit(); 
             return idUsuario;
