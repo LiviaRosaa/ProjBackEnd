@@ -8,9 +8,21 @@ app.use(express.json());
 const rotasUsuarios = require('./routes/usuarios');
 const categoriasRoutes = require('./routes/categorias');
 
-
-app.use('/usuarios', rotasUsuarios);
+app.use('/auth', rotasUsuarios);
 app.use('/categorias', categoriasRoutes);
+
+app.use((req, res, next) => {
+    res.status(404).json({ erro: 'Rota não encontrada' });
+});
+
+app.use((err, req, res, next) => {
+    if (err.name === 'UnauthorizedError') {
+        return res.status(401).json({ erro: 'Token de acesso ausente ou inválido' });
+    }
+    
+    console.error(err.stack);
+    res.status(500).json({ erro: 'Erro interno no servidor' });
+});
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
