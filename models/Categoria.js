@@ -1,20 +1,23 @@
 const db = require('../database/connection');
 
 class Categoria {
-    static async listar(idUsuario) {
-        const [linhas] = await db.query(
-            'SELECT * FROM categorias WHERE id_usuario = ?', 
-            [idUsuario]
-        );
+    static async listar(idUsuario, tipo) {
+        let sql = 'SELECT * FROM categorias WHERE id_usuario = ?';
+        const params = [idUsuario];
+        if (tipo) {
+            sql += ' AND tipo = ?';
+            params.push(tipo);
+        }
+        const [linhas] = await db.query(sql, params);
         return linhas;
     }
 
-    static async criar(nome, idUsuario) {
+    static async criar(nome, tipo, idUsuario) {
         const [resultado] = await db.query(
-            'INSERT INTO categorias (nome, id_usuario) VALUES (?, ?)', 
-            [nome, idUsuario]
+            'INSERT INTO categorias (nome, tipo, id_usuario) VALUES (?, ?, ?)',
+            [nome, tipo, idUsuario]
         );
-        return { id: resultado.insertId, nome, id_usuario: idUsuario };
+        return { id: resultado.insertId, nome, tipo, id_usuario: idUsuario };
     }
 
     static async atualizar(idCategoria, nome, idUsuario) {

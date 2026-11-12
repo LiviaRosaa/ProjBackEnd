@@ -7,9 +7,11 @@ app.use(express.json());
 
 const rotasUsuarios = require('./routes/usuarios');
 const categoriasRoutes = require('./routes/categorias');
+const fontesDestinosRoutes = require('./routes/fontesDestinos');
 
 app.use('/auth', rotasUsuarios);
 app.use('/categorias', categoriasRoutes);
+app.use('/fontes-destinos', fontesDestinosRoutes);
 
 app.use((req, res, next) => {
     res.status(404).json({ erro: 'Rota não encontrada' });
