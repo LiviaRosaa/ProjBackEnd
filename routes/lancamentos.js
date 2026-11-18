@@ -54,9 +54,22 @@ router.get('/', protegerRota, async (req, res) => {
             return res.status(400).json({ erro: 'Dados inválidos.', campos });
         }
 
+        let inicioFiltro = dataInicio;
+        let fimFiltro = dataFim;
+
+        if (!inicioFiltro && !fimFiltro) {
+            const hoje = new Date();
+            const ano = hoje.getUTCFullYear();
+            const mes = hoje.getUTCMonth();
+            const primeiroDia = new Date(Date.UTC(ano, mes, 1)).toISOString().slice(0, 10);
+            const ultimoDia = new Date(Date.UTC(ano, mes + 1, 0)).toISOString().slice(0, 10);
+            inicioFiltro = primeiroDia;
+            fimFiltro = ultimoDia;
+        }
+
         const resultado = await Lancamento.listar(req.auth.id, {
-            dataInicio,
-            dataFim,
+            dataInicio: inicioFiltro,
+            dataFim: fimFiltro,
             tipo,
             idCategoria,
             idFonteDestino,
@@ -280,6 +293,21 @@ router.put('/:id', protegerRota, async (req, res) => {
         const fonteDestino = await Lancamento.buscarFonteDestinoPorId(idFonteDestino, req.auth.id);
         if (!fonteDestino) {
             return res.status(404).json({ erro: 'Fonte/destino não encontrada.' });
+        }
+
+        if (existente.total_parcelas > 1) {
+            if (tipo !== 'saida') {
+                return res.status(400).json({
+                    erro: 'Dados inválidos.',
+                    campos: { tipo: 'Um lançamento parcelado não pode ser alterado para entrada.' }
+                });
+            }
+            if (fonteDestino.tipo !== 'cartao_credito') {
+                return res.status(400).json({
+                    erro: 'Dados inválidos.',
+                    campos: { idFonteDestino: 'Um lançamento parcelado deve estar vinculado a um cartão de crédito.' }
+                });
+            }
         }
 
         await Lancamento.atualizar(

@@ -43,6 +43,7 @@ CREATE TABLE lancamentos (
     valor DECIMAL(10, 2) NOT NULL CHECK (valor > 0),
     data DATE NOT NULL,
     descricao VARCHAR(255) NOT NULL,
+    observacao TEXT NULL,
     tipo ENUM('entrada', 'saida') NOT NULL,
     parcela_atual INT NOT NULL DEFAULT 1,
     total_parcelas INT NOT NULL DEFAULT 1,
