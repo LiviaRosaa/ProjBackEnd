@@ -170,9 +170,48 @@ Exemplo de cartão de crédito:
 }
 ```
 
-### Lançamentos e relatórios
+### Lançamentos (`/lancamentos`)
 
-> **Em desenvolvimento.** Rotas previstas: `/lancamentos` (CRUD com filtros, paginação e compras parceladas), `/relatorios/categorias`, `/relatorios/fontes-destinos`, `/relatorios/faturas` e o desafio `/saude-financeira`.
+| Método | Rota | Descrição | Sucesso |
+|---|---|---|---|
+| `GET`| `/lancamentos` | Lista os lançamentos do usuário com filtros, ordenação e paginação | `200` |
+| `GET` | `/lancamentos/:id` | Busca um lançamento específico do usuário | `200` |
+| `POST` | `/lancamentos` | Cria um lançamento simples ou uma compra parcelada no cartão | `201` |
+| `PUT` | `/lancamentos/:id` | Atualiza um lançamento existente | `200` |
+| `DELETE` | `/lancamentos/:id` | Exclui um lançamento (ou todo o grupo de parcelas com `?grupo=true`) | `204` |
+
+- `tipo` é `entrada` ou `saida`, com `valor` maior que zero e `data` válida no formato `AAAA-MM-DD` (`observacao` opcional).
+- A categoria e a fonte/destino devem pertencer ao usuário, e o `tipo` da categoria deve coincidir com o `tipo` do lançamento.
+- `parcelas` (opcional, inteiro de `1` a `48`, padrão `1`): quando maior que `1`, exige `tipo: "saida"` e uma fonte do tipo `cartao_credito`. Cria `N` registros mensais dividindo os centavos na primeira parcela e vinculando todos pelo mesmo `grupoParcelamento` (UUID).
+- No `GET /lancamentos`, se nenhuma data for informada, filtra automaticamente o mês corrente. Aceita os filtros `tipo`, `idCategoria`, `idFonteDestino`, `inicio`, `fim`, `busca`, `ordenar` (`data_desc`, `data_asc`, `valor_desc`, `valor_asc`), `pagina` e `limite` (máximo `100`).
+- No `PUT /lancamentos/:id`, um lançamento originalmente parcelado (`total_parcelas > 1`) não pode ser alterado para `entrada` nem transferido para uma fonte que não seja `cartao_credito`.
+
+Exemplo de compra parcelada no cartão:
+
+```json
+{
+  "descricao": "Notebook Dell",
+  "valor": 3600.00,
+  "data": "2026-11-15",
+  "tipo": "saida",
+  "idCategoria": 8,
+  "idFonteDestino": 2,
+  "parcelas": 12,
+  "observacao": "Compra para a faculdade"
+}
+```
+
+### Relatórios (`/relatorios`)
+
+| Método | Rota | Descrição | Sucesso |
+|---|---|---|---|
+| `GET` | `/relatorios/categorias?inicio=AAAA-MM-DD&fim=AAAA-MM-DD` | Totais de entradas e saídas por categoria, percentual e variação em relação ao período anterior | `200` |
+| `GET` | `/relatorios/fontes-destinos?inicio=AAAA-MM-DD&fim=AAAA-MM-DD` | Entradas por fonte, saídas por destino e saldo das contas no período | `200` |
+| `GET` | `/relatorios/faturas?meses=3` | Previsão de faturas atuais e futuras dos cartões de crédito e limite disponível | `200` |
+
+- Nos relatórios de categorias e fontes/destinos, `inicio` e `fim` são obrigatórios (`AAAA-MM-DD`), com `inicio` menor ou igual a `fim`.
+- No relatório de faturas, `meses` é opcional (inteiro de `1` a `12`, padrão `3`). Compras realizadas **antes** do `dia_fechamento` entram na fatura do mês corrente; compras feitas **no dia ou depois** do fechamento entram na fatura do mês seguinte.
+- O `limiteUtilizado` de cada cartão considera todas as parcelas vinculadas a faturas ainda não vencidas (`vencimento >= hoje`), e `limiteDisponivel = limiteTotal - limiteUtilizado`.
 
 ## Padrão de respostas
 
@@ -213,6 +252,6 @@ Todas as tabelas ligadas a um usuário usam `ON DELETE CASCADE` na chave estrang
 |---|---|
 | Patricia Lacerda | Infraestrutura, autenticação e usuários |
 | Livia Rosa | Categorias e fontes/destinos |
-| [Ilanna Karolyna] | Lançamentos e relatórios |
+| Ilanna Corado | Lançamentos e relatórios |
 
 O desafio de saúde financeira é desenvolvido pelas três integrantes em conjunto.
