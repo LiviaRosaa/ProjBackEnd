@@ -281,6 +281,157 @@ router.get('/faturas', protegerRota, async (req, res) => {
         console.error(erro);
         res.status(500).json({ erro: 'Erro ao gerar previsão de faturas.' });
     }
+    });
+
+    router.get('/saude-financeira', protegerRota, async (req, res) => {
+    try {
+        const mesesProjecao = req.query.meses !== undefined ? Number(req.query.meses) : 3;
+
+        if (!Number.isInteger(mesesProjecao) || mesesProjecao < 1 || mesesProjecao > 12) {
+            return res.status(400).json({
+                erro: 'Dados inválidos.',
+                campos: { meses: 'O parâmetro meses deve ser um inteiro entre 1 e 12.' }
+            });
+        }
+
+        const hoje = new Date();
+        const hojeISO = hoje.toISOString().slice(0, 10);
+        const anoAtual = hoje.getUTCFullYear();
+        const mesAtual = hoje.getUTCMonth();
+
+        // Janela histórica: últimos 3 meses (incluindo o mês atual)
+        const inicioHistorico = dataSeguraUTC(anoAtual, mesAtual - 2, 1).toISOString().slice(0, 10);
+        const fimHistorico = dataSeguraUTC(anoAtual, mesAtual + 1, 0).toISOString().slice(0, 10);
+
+        // Janela futura para parcelas já agendadas
+        const inicioFuturo = dataSeguraUTC(anoAtual, mesAtual + 1, 1).toISOString().slice(0, 10);
+        const fimFuturo = dataSeguraUTC(anoAtual, mesAtual + mesesProjecao + 1, 0).toISOString().slice(0, 10);
+
+        const [historico, parcelasFuturas, cartoes, lancamentosCartoes] = await Promise.all([
+            Relatorio.resumoMensal(req.auth.id, inicioHistorico, fimHistorico),
+            Relatorio.parcelasFuturasPorMes(req.auth.id, inicioFuturo, fimFuturo),
+            Relatorio.listarCartoesCredito(req.auth.id),
+            Relatorio.listarLancamentosCartoes(req.auth.id)
+        ]);
+
+        // 1. Indicadores de Entradas, Saídas e Poupança
+        const totalEntradas = historico.reduce((acc, m) => acc + Number(m.entradas), 0);
+        const totalSaidas = historico.reduce((acc, m) => acc + Number(m.saidas), 0);
+        const saldoPeriodo = arredondar(totalEntradas - totalSaidas);
+        const mesesComDados = historico.length || 1;
+
+        const mediaEntradas = arredondar(totalEntradas / mesesComDados);
+        const mediaSaidas = arredondar(totalSaidas / mesesComDados);
+
+        const comprometimentoRenda = totalEntradas > 0
+            ? arredondar((totalSaidas / totalEntradas) * 100)
+            : (totalSaidas > 0 ? 100 : 0);
+
+        const taxaPoupanca = totalEntradas > 0
+            ? arredondar(((totalEntradas - totalSaidas) / totalEntradas) * 100)
+            : 0;
+
+        // 2. Indicador de Uso do Limite de Cartão
+        const limiteTotal = arredondar(cartoes.reduce((acc, c) => acc + Number(c.limite || 0), 0));
+        let limiteUtilizado = 0;
+
+        for (const cartao of cartoes) {
+            const lancsDoCartao = lancamentosCartoes.filter((l) => l.cartao_id === cartao.id);
+            for (const l of lancsDoCartao) {
+                const fatura = calcularFatura(l.data, cartao, l.parcela_atual);
+                if (fatura.vencimento >= hojeISO) {
+                    limiteUtilizado += Number(l.valor);
+                }
+            }
+        }
+        limiteUtilizado = arredondar(limiteUtilizado);
+        const usoLimiteCartao = limiteTotal > 0
+            ? arredondar((limiteUtilizado / limiteTotal) * 100)
+            : 0;
+
+        // Classificação geral
+        let classificacao = 'saudavel';
+        if (comprometimentoRenda > 90 || taxaPoupanca < 0 || usoLimiteCartao > 80) {
+            classificacao = 'critica';
+        } else if (comprometimentoRenda > 70 || taxaPoupanca < 15 || usoLimiteCartao > 50) {
+            classificacao = 'atencao';
+        }
+
+        // 3. Projeção mês a mês
+        const mapaParcelas = new Map();
+        for (const p of parcelasFuturas) {
+            mapaParcelas.set(p.mes, Number(p.totalParcelas));
+        }
+
+        const projecaoMensal = [];
+        let saldoAcumulado = saldoPeriodo;
+
+        for (let i = 1; i <= mesesProjecao; i++) {
+            const dataProj = dataSeguraUTC(anoAtual, mesAtual + i, 1);
+            const mesRef = dataProj.toISOString().slice(0, 7);
+            const parcelasAgendadas = arredondar(mapaParcelas.get(mesRef) || 0);
+            const saidaEstimada = arredondar(mediaSaidas + parcelasAgendadas);
+            const saldoMes = arredondar(mediaEntradas - saidaEstimada);
+            saldoAcumulado = arredondar(saldoAcumulado + saldoMes);
+
+            projecaoMensal.push({
+                mes: mesRef,
+                entradasEstimadas: mediaEntradas,
+                saidasEstimadas: saidaEstimada,
+                parcelasAgendadas,
+                saldoMes,
+                saldoAcumulado
+            });
+        }
+
+        // 4. Dicas geradas a partir dos dados reais
+        const dicas = [];
+
+        if (totalEntradas === 0 && totalSaidas === 0) {
+            dicas.push('Registre suas entradas e saídas para receber análises e recomendações personalizadas.');
+        } else {
+            if (taxaPoupanca < 0) {
+                dicas.push(`Suas saídas superaram suas entradas no período (saldo de R$ ${saldoPeriodo.toFixed(2)}). Revise gastos não essenciais com prioridade.`);
+            } else if (taxaPoupanca < 15) {
+                dicas.push(`Sua taxa de poupança está em ${taxaPoupanca}%. Tente direcionar pelo menos 15% a 20% da renda para reserva de emergência.`);
+            } else {
+                dicas.push(`Excelente disciplina! Você poupou ${taxaPoupanca}% da sua renda no período.`);
+            }
+
+            if (comprometimentoRenda > 80) {
+                dicas.push(`Atenção: ${comprometimentoRenda}% da sua renda está comprometida com saídas. Isso reduz sua margem para imprevistos.`);
+            }
+
+            if (limiteTotal > 0 && usoLimiteCartao > 50) {
+                dicas.push(`Você está utilizando ${usoLimiteCartao}% do limite total dos seus cartões (R$ ${limiteUtilizado.toFixed(2)} de R$ ${limiteTotal.toFixed(2)}). Evite novos parcelamentos.`);
+            } else if (limiteTotal > 0) {
+                dicas.push(`Uso saudável do crédito: apenas ${usoLimiteCartao}% do limite total dos seus cartões está comprometido.`);
+            }
+
+            const mesNegativo = projecaoMensal.find((p) => p.saldoMes < 0);
+            if (mesNegativo) {
+                dicas.push(`Na projeção, o mês ${mesNegativo.mes} apresenta saldo negativo estimado de R$ ${mesNegativo.saldoMes.toFixed(2)}. Planeje reduzir gastos antes desse período.`);
+            }
+        }
+
+        res.json({
+            periodoAnalisado: { inicio: inicioHistorico, fim: fimHistorico },
+            classificacao,
+            indicadores: {
+                taxaPoupanca,
+                comprometimentoRenda,
+                usoLimiteCartao,
+                saldoPeriodo,
+                mediaMensalEntradas: mediaEntradas,
+                mediaMensalSaidas: mediaSaidas
+            },
+            projecaoMensal,
+            dicas
+        });
+    } catch (erro) {
+        console.error(erro);
+        res.status(500).json({ erro: 'Erro ao gerar relatório de saúde financeira.' });
+    }
 });
 
 module.exports = router;

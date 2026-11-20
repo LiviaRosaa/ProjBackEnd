@@ -81,6 +81,39 @@ class Relatorio {
         const [linhas] = await db.query(sql, [idUsuario]);
         return linhas;
     }
+
+    static async resumoMensal(idUsuario, inicio, fim) {
+        const [linhas] = await db.query(
+            `SELECT 
+                DATE_FORMAT(data, '%Y-%m') AS mes,
+                SUM(CASE WHEN tipo = 'entrada' THEN valor ELSE 0 END) AS entradas,
+                SUM(CASE WHEN tipo = 'saida' THEN valor ELSE 0 END) AS saidas
+             FROM lancamentos
+             WHERE id_usuario = ? AND data BETWEEN ? AND ?
+             GROUP BY DATE_FORMAT(data, '%Y-%m')
+             ORDER BY mes ASC`,
+            [idUsuario, inicio, fim]
+        );
+        return linhas;
+    }
+
+    static async parcelasFuturasPorMes(idUsuario, inicio, fim) {
+        const [linhas] = await db.query(
+            `SELECT 
+                DATE_FORMAT(data, '%Y-%m') AS mes,
+                SUM(valor) AS totalParcelas
+             FROM lancamentos
+             WHERE id_usuario = ? 
+               AND tipo = 'saida'
+               AND total_parcelas > 1
+               AND data BETWEEN ? AND ?
+             GROUP BY DATE_FORMAT(data, '%Y-%m')
+             ORDER BY mes ASC`,
+            [idUsuario, inicio, fim]
+        );
+        return linhas;
+    }
 }
+
 
 module.exports = Relatorio;
