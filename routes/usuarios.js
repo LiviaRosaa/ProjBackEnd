@@ -78,7 +78,7 @@ router.post('/login', async (req, res) => {
             return res.status(401).json({ erro: 'E-mail ou senha incorretos' });
         }
 
-        const senhaValida = await bcrypt.compare(senha, usuario.senha);
+        const senhaValida = await bcrypt.compare(senha, usuario.senha_hash);
         if (!senhaValida) {
             return res.status(401).json({ erro: 'E-mail ou senha incorretos' });
         }

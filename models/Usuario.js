@@ -8,7 +8,7 @@ class Usuario {
             await conexao.beginTransaction(); 
 
             const [resultadoUsuario] = await conexao.query(
-                'INSERT INTO usuarios (nome, email, cpf, senha) VALUES (?, ?, ?, ?)',
+                'INSERT INTO usuarios (nome, email, cpf, senha_hash) VALUES (?, ?, ?, ?)',
                 [nome, email, cpf, senhaHash]
             );
             const idUsuario = resultadoUsuario.insertId;

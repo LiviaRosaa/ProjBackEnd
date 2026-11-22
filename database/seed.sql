@@ -1,12 +1,13 @@
 USE api_financas;
 
-INSERT INTO usuarios (nome, email, cpf, senha) VALUES
-('João Silva', 'joao@email.com', '11144477735', '$2b$10$R8pRFX8PLdIRbQ.7OujDvOzqP0FCdjAwGnr/b2RdJ0cOR5GIU.obq');
+INSERT INTO usuarios (nome, email, cpf, senha_hash) VALUES
+('João Silva', 'joao@email.com', '11144477735', '$2b$10$AKm2ychAC7AmZY3cd1.0bekECYGfFjH4syjPybZIVDria1NAcJMa6');
 SET @joao_id = LAST_INSERT_ID();
 
-INSERT INTO usuarios (nome, email, cpf, senha) VALUES
-('Maria Oliveira', 'maria@email.com', '52998224725', '$2b$10$R8pRFX8PLdIRbQ.7OujDvOzqP0FCdjAwGnr/b2RdJ0cOR5GIU.obq');
+INSERT INTO usuarios (nome, email, cpf, senha_hash) VALUES
+('Maria Oliveira', 'maria@email.com', '52998224725', '$2b$10$AKm2ychAC7AmZY3cd1.0bekECYGfFjH4syjPybZIVDria1NAcJMa6');
 SET @maria_id = LAST_INSERT_ID();
+
 
 INSERT INTO categorias (nome, tipo, id_usuario) VALUES ('Salário', 'entrada', @joao_id);
 SET @joao_cat_salario = LAST_INSERT_ID();
@@ -42,10 +43,10 @@ INSERT INTO fontes_destinos (nome, tipo, dia_fechamento, dia_vencimento, limite,
 ('Cartão Nubank', 'cartao_credito', 10, 17, 3000.00, @joao_id);
 SET @joao_fonte_cartao = LAST_INSERT_ID();
 
+
 INSERT INTO fontes_destinos (nome, tipo, dia_fechamento, dia_vencimento, limite, id_usuario) VALUES
 ('Conta corrente', 'conta', NULL, NULL, NULL, @maria_id);
 SET @maria_fonte_conta = LAST_INSERT_ID();
-
 
 
 INSERT INTO lancamentos (valor, data, descricao, observacao, tipo, parcela_atual, total_parcelas, grupo_parcelamento, id_categoria, id_fonte_destino, id_usuario) VALUES
@@ -59,15 +60,18 @@ INSERT INTO lancamentos (valor, data, descricao, observacao, tipo, parcela_atual
 (1500.00, '2026-10-10', 'Aluguel', 'Apartamento', 'saida', 1, 1, NULL, @joao_cat_moradia, @joao_fonte_conta, @joao_id),
 (580.00,  '2026-10-15', 'Supermercado', NULL, 'saida', 1, 1, NULL, @joao_cat_alim, @joao_fonte_conta, @joao_id);
 
+
 INSERT INTO lancamentos (valor, data, descricao, observacao, tipo, parcela_atual, total_parcelas, grupo_parcelamento, id_categoria, id_fonte_destino, id_usuario) VALUES
 (4500.00, '2026-11-05', 'Salário mensal', 'Pagamento novembro', 'entrada', 1, 1, NULL, @joao_cat_salario, @joao_fonte_renda, @joao_id),
 (1500.00, '2026-11-10', 'Aluguel', 'Apartamento', 'saida', 1, 1, NULL, @joao_cat_moradia, @joao_fonte_conta, @joao_id),
 (640.00,  '2026-11-12', 'Supermercado', NULL, 'saida', 1, 1, NULL, @joao_cat_alim, @joao_fonte_conta, @joao_id);
 
+
 INSERT INTO lancamentos (valor, data, descricao, observacao, tipo, parcela_atual, total_parcelas, grupo_parcelamento, id_categoria, id_fonte_destino, id_usuario) VALUES
 (33.34, '2026-09-18', 'Curso de Node.js (1/3)', 'Compra parcelada', 'saida', 1, 3, '550e8400-e29b-41d4-a716-446655440000', @joao_cat_educ, @joao_fonte_cartao, @joao_id),
-(33.33, '2026-09-18', 'Curso de Node.js (2/3)', 'Compra parcelada', 'saida', 2, 3, '550e8400-e29b-41d4-a716-446655440000', @joao_cat_educ, @joao_fonte_cartao, @joao_id),
-(33.33, '2026-09-18', 'Curso de Node.js (3/3)', 'Compra parcelada', 'saida', 3, 3, '550e8400-e29b-41d4-a716-446655440000', @joao_cat_educ, @joao_fonte_cartao, @joao_id);
+(33.33, '2026-10-18', 'Curso de Node.js (2/3)', 'Compra parcelada', 'saida', 2, 3, '550e8400-e29b-41d4-a716-446655440000', @joao_cat_educ, @joao_fonte_cartao, @joao_id),
+(33.33, '2026-11-18', 'Curso de Node.js (3/3)', 'Compra parcelada', 'saida', 3, 3, '550e8400-e29b-41d4-a716-446655440000', @joao_cat_educ, @joao_fonte_cartao, @joao_id);
+
 
 INSERT INTO lancamentos (valor, data, descricao, observacao, tipo, parcela_atual, total_parcelas, grupo_parcelamento, id_categoria, id_fonte_destino, id_usuario) VALUES
 (3800.00, '2026-11-05', 'Salário mensal', NULL, 'entrada', 1, 1, NULL, @maria_cat_salario, @maria_fonte_conta, @maria_id),
