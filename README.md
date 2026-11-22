@@ -249,7 +249,7 @@ Exemplo de compra parcelada no cartão:
 | `GET` | `/relatorios/categorias?inicio=AAAA-MM-DD&fim=AAAA-MM-DD` | Totais de entradas e saídas por categoria, percentual e variação em relação ao período anterior | `200` |
 | `GET` | `/relatorios/fontes-destinos?inicio=AAAA-MM-DD&fim=AAAA-MM-DD` | Entradas por fonte, saídas por destino e saldo das contas no período | `200` |
 | `GET` | `/relatorios/faturas?meses=3` | Faturas atuais e futuras de cada cartão de crédito, com limite utilizado e disponível | `200` |
-| `GET` | `/relatorios/saude-financeira?meses=3` | Indicadores, projeção mês a mês e dicas a partir dos dados do usuário (desafio) | `200` |
+| `GET` | `/saude-financeira?meses=3` | Indicadores, projeção mês a mês e dicas a partir dos dados do usuário (desafio) | `200` |
 
 - Nos relatórios de categorias e fontes/destinos, `inicio` e `fim` são obrigatórios, com `inicio` menor ou igual a `fim`.
 - O período anterior do relatório de categorias tem o mesmo tamanho do período pedido, imediatamente antes dele. Quando não havia gasto na categoria no período anterior, a variação é 100%.
