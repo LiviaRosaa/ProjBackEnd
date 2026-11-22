@@ -35,11 +35,25 @@ router.post('/cadastro', async (req, res) => {
         }
 
         const senhaHash = await bcrypt.hash(senha, 10);
-        const idUsuario = await Usuario.criar(nome, email, cpf, senhaHash);
+        let idUsuario;
+        try {
+            idUsuario = await Usuario.criar(nome, email, cpf, senhaHash);
+        } catch (erro) {
+            if (erro.code === 'ER_DUP_ENTRY') {
+                const campo = erro.sqlMessage.includes('uq_usuarios_cpf') ? 'cpf' : 'email';
+                return res.status(409).json({
+                    erro: 'Conflito de dados',
+                    campos: { [campo]: campo === 'cpf' ? 'Este CPF já está cadastrado' : 'Este e-mail já está cadastrado' }
+                });
+            }
+            throw erro;
+        }
 
-        res.status(201).json({ 
-            mensagem: 'Usuário, categorias e conta corrente cadastrados com sucesso!', 
-            id: idUsuario 
+        res.status(201).json({
+            mensagem: 'Usuário, categorias e conta corrente cadastrados com sucesso!',
+            id: idUsuario,
+            nome,
+            email
         });
     } catch (erro) {
         console.error(erro);
@@ -52,6 +66,13 @@ router.post('/login', async (req, res) => {
         let { email, senha } = req.body;
         if (email) email = email.trim().toLowerCase();
 
+        if (!email || !senha) {
+            return res.status(400).json({
+                erro: 'Dados inválidos.',
+                campos: { email: !email ? 'Informe o e-mail.' : undefined, senha: !senha ? 'Informe a senha.' : undefined }
+            });
+        }
+
         const usuario = await Usuario.buscarPorEmail(email);
         if (!usuario) {
             return res.status(401).json({ erro: 'E-mail ou senha incorretos' });
@@ -63,7 +84,7 @@ router.post('/login', async (req, res) => {
         }
 
         const token = jwt.sign(
-            { id: usuario.id }, 
+            { id: usuario.id, nome: usuario.nome, email: usuario.email }, 
             process.env.JWT_SECRET, 
             { expiresIn: '8h' }
         );

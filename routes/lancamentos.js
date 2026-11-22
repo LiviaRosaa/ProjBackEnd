@@ -3,7 +3,7 @@ const crypto = require('crypto');
 const router = express.Router();
 const Lancamento = require('../models/Lancamento');
 const protegerRota = require('../middleware/auth');
-const { validarDataUTC, adicionarMesesUTC } = require('../utils/datas');
+const { validarDataUTC } = require('../utils/datas');
 
 const TIPOS = ['entrada', 'saida'];
 
@@ -33,7 +33,7 @@ function formatarLancamento(linha) {
 
 router.get('/', protegerRota, async (req, res) => {
     try {
-        const { dataInicio, dataFim, tipo, idCategoria, idFonteDestino, pagina } = req.query;
+        const { inicio: dataInicio, fim: dataFim, tipo, categoriaId: idCategoria, fonteDestinoId: idFonteDestino, pagina } = req.query;
         const campos = {};
 
         if (dataInicio && !validarDataUTC(dataInicio)) {
@@ -121,7 +121,8 @@ router.post('/', protegerRota, async (req, res) => {
             observacao = null,
             idCategoria,
             idFonteDestino,
-            totalParcelas = 1
+            parcelas,
+            totalParcelas
         } = req.body;
 
         const campos = {};
@@ -144,9 +145,9 @@ router.post('/', protegerRota, async (req, res) => {
         if (!idFonteDestino) {
             campos.idFonteDestino = 'A fonte/destino é obrigatória.';
         }
-        const parcelasNum = Number(totalParcelas);
+        const parcelasNum = Number(parcelas ?? totalParcelas ?? 1);
         if (!Number.isInteger(parcelasNum) || parcelasNum < 1 || parcelasNum > 48) {
-            campos.totalParcelas = 'O total de parcelas deve ser um inteiro entre 1 e 48.';
+            campos.parcelas = 'O número de parcelas deve ser um inteiro entre 1 e 48.';
         }
 
         if (Object.keys(campos).length > 0) {
@@ -173,13 +174,13 @@ router.post('/', protegerRota, async (req, res) => {
             if (tipo !== 'saida') {
                 return res.status(400).json({
                     erro: 'Dados inválidos.',
-                    campos: { totalParcelas: 'Parcelamento só é permitido para lançamentos do tipo saida.' }
+                    campos: { parcelas: 'Parcelamento só é permitido para lançamentos do tipo saida.' }
                 });
             }
             if (fonteDestino.tipo !== 'cartao_credito') {
                 return res.status(400).json({
                     erro: 'Dados inválidos.',
-                    campos: { totalParcelas: 'Parcelamento só é permitido para compras no cartão de crédito.' }
+                    campos: { parcelas: 'Parcelamento só é permitido para compras no cartão de crédito.' }
                 });
             }
         }
@@ -196,7 +197,8 @@ router.post('/', protegerRota, async (req, res) => {
         for (let k = 1; k <= parcelasNum; k++) {
             const centavosParcela = k === 1 ? valorBaseCentavos + restoCentavos : valorBaseCentavos;
             const valorParcela = Number((centavosParcela / 100).toFixed(2));
-            const dataParcela = k === 1 ? data : adicionarMesesUTC(data, k - 1);
+            // Enunciado: todas as parcelas usam a data da compra; o cálculo da fatura usa parcelaAtual
+            const dataParcela = data;
 
             itensParaInserir.push({
                 descricao: descricaoLimpa,

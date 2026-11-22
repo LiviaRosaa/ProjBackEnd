@@ -4,9 +4,11 @@ USE api_financas;
 CREATE TABLE usuarios (
     id INT AUTO_INCREMENT PRIMARY KEY,
     nome VARCHAR(100) NOT NULL,
-    email VARCHAR(100) NOT NULL UNIQUE,
-    cpf VARCHAR (11) NOT NULL UNIQUE,
-    senha VARCHAR(255) NOT NULL
+    email VARCHAR(100) NOT NULL,
+    cpf VARCHAR(11) NOT NULL,
+    senha VARCHAR(255) NOT NULL,
+    CONSTRAINT uq_usuarios_email UNIQUE (email),
+    CONSTRAINT uq_usuarios_cpf UNIQUE (cpf)
 );
 
 CREATE TABLE categorias (

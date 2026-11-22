@@ -307,9 +307,8 @@ router.get('/faturas', protegerRota, async (req, res) => {
         const inicioFuturo = dataSeguraUTC(anoAtual, mesAtual + 1, 1).toISOString().slice(0, 10);
         const fimFuturo = dataSeguraUTC(anoAtual, mesAtual + mesesProjecao + 1, 0).toISOString().slice(0, 10);
 
-        const [historico, parcelasFuturas, cartoes, lancamentosCartoes] = await Promise.all([
+        const [historico, cartoes, lancamentosCartoes] = await Promise.all([
             Relatorio.resumoMensal(req.auth.id, inicioHistorico, fimHistorico),
-            Relatorio.parcelasFuturasPorMes(req.auth.id, inicioFuturo, fimFuturo),
             Relatorio.listarCartoesCredito(req.auth.id),
             Relatorio.listarLancamentosCartoes(req.auth.id)
         ]);
@@ -358,9 +357,14 @@ router.get('/faturas', protegerRota, async (req, res) => {
         }
 
         // 3. Projeção mês a mês
+        // Parcelas são agrupadas pela fatura em que caem (a data gravada é a da compra)
         const mapaParcelas = new Map();
-        for (const p of parcelasFuturas) {
-            mapaParcelas.set(p.mes, Number(p.totalParcelas));
+        for (const l of lancamentosCartoes) {
+            if (Number(l.total_parcelas) <= 1) continue;
+            const cartao = cartoes.find((c) => c.id === l.cartao_id);
+            if (!cartao) continue;
+            const { referencia } = calcularFatura(l.data, cartao, l.parcela_atual);
+            mapaParcelas.set(referencia, (mapaParcelas.get(referencia) || 0) + Number(l.valor));
         }
 
         const projecaoMensal = [];
@@ -415,6 +419,7 @@ router.get('/faturas', protegerRota, async (req, res) => {
         }
 
         res.json({
+            aviso: 'Informações educativas; não constituem recomendação financeira profissional.',
             periodoAnalisado: { inicio: inicioHistorico, fim: fimHistorico },
             classificacao,
             indicadores: {
