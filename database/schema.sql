@@ -6,7 +6,7 @@ CREATE TABLE usuarios (
     nome VARCHAR(100) NOT NULL,
     email VARCHAR(100) NOT NULL,
     cpf VARCHAR(11) NOT NULL,
-    senha VARCHAR(255) NOT NULL,
+    senha_hash VARCHAR(255) NOT NULL,
     CONSTRAINT uq_usuarios_email UNIQUE (email),
     CONSTRAINT uq_usuarios_cpf UNIQUE (cpf)
 );
