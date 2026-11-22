@@ -1,14 +1,14 @@
 {
   "name": "api-financas",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "API REST de controle financeiro pessoal com Node.js, Express e MySQL",
+  "main": "server.js",
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js"
   },
   "keywords": [],
-  "author": "",
+  "author": "Patricia Lacerda, Lívia Rosa e Ilanna",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
