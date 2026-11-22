@@ -87,8 +87,8 @@ router.get('/', protegerRota, async (req, res) => {
                 totalPaginas
             },
             resumo: {
-                totalEntradas: Number(resultado.totalEntradas.toFixed(2)),
-                totalSaidas: Number(resultado.totalSaidas.toFixed(2)),
+                entradas: Number(resultado.totalEntradas.toFixed(2)),
+                saidas: Number(resultado.totalSaidas.toFixed(2)),
                 saldo: Number((resultado.totalEntradas - resultado.totalSaidas).toFixed(2))
             }
         });
