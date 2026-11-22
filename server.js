@@ -16,6 +16,7 @@ app.use('/categorias', categoriasRoutes);
 app.use('/fontes-destinos', fontesDestinosRoutes);
 app.use('/lancamentos', lancamentosRoutes);
 app.use('/relatorios', relatoriosRoutes);
+app.get('/saude-financeira', relatoriosRoutes);
 
 app.use((req, res, next) => {
     res.status(404).json({ erro: 'Rota não encontrada' });
