@@ -46,6 +46,12 @@ function validarDadosFonteDestino(body) {
     };
 }
 
+function formatarFonteDestino(fonte) {
+    return {
+        ...fonte,
+        limite: fonte.limite !== null && fonte.limite !== undefined ? Number(fonte.limite) : null
+    };
+}
 
 router.get('/', protegerRota, async (req, res) => {
     try {
@@ -54,13 +60,12 @@ router.get('/', protegerRota, async (req, res) => {
             return res.status(400).json({ erro: 'Dados inválidos.', campos: { tipo: 'Use renda, conta ou cartao_credito.' } });
         }
         const fontes = await FonteDestino.listar(req.auth.id, tipo);
-        res.json(fontes);
+        res.json(fontes.map(formatarFonteDestino));
     } catch (erro) {
         console.error(erro);
         res.status(500).json({ erro: 'Erro ao buscar fontes e destinos' });
     }
 });
-
 
 router.post('/', protegerRota, async (req, res) => {
     try {
@@ -71,7 +76,7 @@ router.post('/', protegerRota, async (req, res) => {
         }
 
         const nova = await FonteDestino.criar(dadosNormalizados, req.auth.id);
-        res.status(201).json(nova);
+        res.status(201).json(formatarFonteDestino(nova));
     } catch (erro) {
         if (erro.code === 'ER_DUP_ENTRY') {
             return res.status(409).json({ erro: 'Já existe uma fonte/destino com esse nome.' });
